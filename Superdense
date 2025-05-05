@@ -1,0 +1,48 @@
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.visualization import plot_histogram
+from qiskit.quantum_info import Statevector
+
+# Step 1: Create an entangled pair (shared between Alice and Bob)
+qc = QuantumCircuit(2, 2)
+
+# Create a Bell pair (entanglement)
+qc.h(0)           # Hadamard on qubit 0 (Alice)
+qc.cx(0, 1)       # CNOT from qubit 0 (Alice) to qubit 1 (Bob)
+
+# At this point, Alice and Bob share an entangled pair
+
+# ---- Alice encodes her 2 classical bits ----
+# Choose the message: '00', '01', '10', or '11'
+message = '10'
+
+# Apply operations based on the message
+if message == '00':
+    pass
+elif message == '01':
+    qc.z(0)
+elif message == '10':
+    qc.x(0)
+elif message == '11':
+    qc.z(0)
+    qc.x(0)
+
+# ---- Alice sends her qubit (qubit 0) to Bob ----
+# Now Bob has both qubits: he will decode the message
+
+# Step 2: Bob decodes the message
+qc.cx(0, 1)
+qc.h(0)
+
+# Step 3: Measure both qubits
+qc.measure(0, 0)
+qc.measure(1, 1)
+
+# Simulate the circuit
+backend = Aer.get_backend('qasm_simulator')
+result = execute(qc, backend, shots=1024).result()
+counts = result.get_counts()
+
+# Show results
+print(f"Message sent: {message}")
+print("Measurement counts:", counts)
+plot_histogram(counts).show()
