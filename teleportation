@@ -1,0 +1,45 @@
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.visualization import plot_bloch_multivector
+from qiskit.quantum_info import random_statevector, Statevector
+from qiskit.tools.visualization import array_to_latex
+
+# Step 1: Initialize circuit with 3 qubits and 2 classical bits
+qc = QuantumCircuit(3, 2)
+
+# Generate a random 1-qubit state for Alice's qubit (qubit 0)
+psi = random_statevector(2)
+
+# Display the random state vector in LaTeX format
+display(array_to_latex(psi, prefix="|\\psi\\rangle ="))
+
+# Set Alice's qubit to the random state |psi>
+qc.initialize(psi.data, 0)  # Alice's qubit is set to the random state
+
+# Step 2: Create a Bell pair between qubit 1 (Alice) and qubit 2 (Bob)
+qc.h(1)      # Hadamard on qubit 1 (Alice)
+qc.cx(1, 2)  # CNOT from qubit 1 (Alice) to qubit 2 (Bob)
+
+# Step 3: Alice performs teleportation steps on qubits 0 and 1
+qc.cx(0, 1)  # CNOT from qubit 0 (Alice) to qubit 1 (Alice)
+qc.h(0)      # Hadamard on qubit 0 (Alice)
+
+# Step 4: Alice measures her two qubits (0 and 1)
+qc.measure(0, 0)  # Measure qubit 0
+qc.measure(1, 1)  # Measure qubit 1
+
+# Step 5: Bob applies corrections based on Alice’s classical bits
+qc.x(2).c_if(1, 1)  # If classical bit 1 is 1, apply X to qubit 2
+qc.z(2).c_if(0, 1)  # If classical bit 0 is 1, apply Z to qubit 2
+
+# Simulate the circuit
+sim = Aer.get_backend('aer_simulator')
+qc.save_statevector()  # Save the statevector to observe final state
+result = execute(qc, backend=sim).result()
+state = result.get_statevector()
+
+print("Final statevector of all 3 qubits:")
+print(state)
+
+# Show Bob’s qubit on the Bloch sphere (which is qubit 2)
+bob_state = Statevector(state).reduce([2])  # Only look at Bob’s qubit
+plot_bloch_multivector(bob_state).show()
